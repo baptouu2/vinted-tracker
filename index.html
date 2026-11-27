@@ -908,17 +908,21 @@ function canShareFiles(file) { try { return !!(navigator.canShare && navigator.c
 function showPdfSheet(file, title, subtitle, orderIds) {
   const url = URL.createObjectURL(file);
   const share = canShareFiles(file);
+  // « Ouvrir le PDF » d'abord : c'est le chemin qui marche à coup sûr avec les applis d'imprimante
+  // (aperçu iOS → Partager → appli de l'imprimante).
   const s = openSheet(`<h3>${esc(title)}</h3><p class="muted small" style="margin:0">${esc(subtitle)}</p>
     <div class="stack">
-      ${share ? '<button class="btn primary" id="shShare">📤 Envoyer à l’appli de l’imprimante</button>' : ''}
-      <a class="btn ${share ? '' : 'primary'}" href="${url}" target="_blank" rel="noopener" style="text-decoration:none">📄 Ouvrir le PDF</a>
+      <a class="btn primary" href="${url}" target="_blank" rel="noopener" style="text-decoration:none">📄 Ouvrir le PDF pour l’imprimer</a>
+      <p class="muted small" style="margin:-2px 0 4px;text-align:center">Puis touche <b>Partager</b> ⬆️ et choisis l’appli de ton imprimante.</p>
+      ${share ? '<button class="btn" id="shShare">📤 Partager directement</button>' : ''}
       <a class="btn" href="${url}" download="${esc(file.name)}" style="text-decoration:none">⬇️ Enregistrer dans Fichiers</a>
       ${orderIds && orderIds.length ? `<button class="btn" id="shDone">✅ C’est imprimé : les passer dans « Imprimés »</button>` : ''}
       <button class="btn" onclick="closeSheet()">Fermer</button>
     </div>`, () => setTimeout(() => URL.revokeObjectURL(url), 60000));
   const b = s.querySelector('#shShare');
   if (b) b.onclick = async () => {
-    try { await navigator.share({ files: [file], title: file.name }); }
+    // Le PDF SEUL (sans titre ni texte) : avec un texte en plus, iOS masque les applis qui n'acceptent que des PDF
+    try { await navigator.share({ files: [file] }); }
     catch (e) { if (e && e.name !== 'AbortError') toast('Partage impossible : ' + e.message, 'error'); }
   };
   const d = s.querySelector('#shDone');
