@@ -1,0 +1,783 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Vinted Tracker">
+<meta name="theme-color" content="#1F4E3F">
+<title>Vinted Tracker</title>
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+:root {
+  --bg: #F6F3EC; --card: #FFFFFF; --ink: #1E2420; --muted: #6E716A; --line: #E4DED2;
+  --green: #1F4E3F; --green-soft: #E3ECE7; --gold: #B89968; --red: #A04C3D; --red-soft: #F5E4E0;
+  --orange: #C97B5A; --shadow: 0 1px 2px rgba(30,36,32,.06), 0 4px 14px rgba(30,36,32,.06);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141816; --card: #1E2421; --ink: #ECEAE4; --muted: #9DA29A; --line: #2E3531;
+    --green: #6FB394; --green-soft: #213A30; --gold: #D4B888; --red: #E0846F; --red-soft: #3A2420;
+    --orange: #E09A7B; --shadow: 0 1px 2px rgba(0,0,0,.3);
+  }
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); }
+body { font: 15px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; min-height: 100vh; padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+button { font: inherit; color: inherit; border: 0; background: none; cursor: pointer; }
+input, textarea { font: inherit; color: var(--ink); }
+.hidden { display: none !important; }
+
+/* En-tête */
+header { position: sticky; top: 0; z-index: 20; background: var(--bg); padding: calc(10px + env(safe-area-inset-top)) 16px 10px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--line); }
+header h1 { font-size: 19px; margin: 0; flex: 1; letter-spacing: -.2px; }
+.pill { font-size: 12px; padding: 4px 9px; border-radius: 99px; background: var(--card); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pill .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--muted); margin-right: 5px; vertical-align: 1px; }
+.pill.on .dot { background: #3FA36B; } .pill.off .dot { background: var(--red); }
+
+main { padding: 14px 16px; max-width: 720px; margin: 0 auto; }
+.view { display: none; } .view.active { display: block; }
+
+/* Barre du bas */
+nav.tabs { position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; display: flex; background: var(--card); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+nav.tabs button { flex: 1; padding: 8px 2px 9px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; color: var(--muted); position: relative; }
+nav.tabs button .ico { font-size: 20px; line-height: 1.1; }
+nav.tabs button.active { color: var(--green); font-weight: 600; }
+.badge { position: absolute; top: 4px; left: 50%; margin-left: 8px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; line-height: 18px; font-weight: 700; }
+
+/* Éléments communs */
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 11px 14px; border-radius: 11px; font-weight: 600; background: var(--card); border: 1px solid var(--line); }
+a.btn { color: inherit; text-decoration: none; }
+.btn.primary { background: var(--green); border-color: var(--green); color: #fff; }
+@media (prefers-color-scheme: dark) { .btn.primary { color: #0F1512; } }
+.btn.danger { color: var(--red); }
+.btn:disabled { opacity: .45; }
+.btn.small { padding: 7px 10px; font-size: 13px; border-radius: 9px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.row > .btn.grow { flex: 1; }
+.seg { display: flex; background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 3px; margin: 12px 0; }
+.seg button { flex: 1; padding: 8px; border-radius: 8px; font-size: 14px; color: var(--muted); }
+.seg button.active { background: var(--green-soft); color: var(--green); font-weight: 600; }
+.empty { text-align: center; color: var(--muted); padding: 34px 10px; }
+.empty .big { font-size: 34px; display: block; margin-bottom: 6px; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+h2 { font-size: 16px; margin: 18px 0 8px; }
+
+/* Bordereaux */
+.label-card { display: flex; gap: 12px; padding: 12px; margin-bottom: 10px; }
+.thumb { width: 86px; height: 118px; flex: none; border-radius: 8px; background: #fff; border: 1px solid var(--line); overflow: hidden; display: flex; align-items: center; justify-content: center; color: #999; font-size: 11px; }
+.thumb canvas { max-width: 100%; max-height: 100%; display: block; }
+.label-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.label-title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.label-actions { display: flex; gap: 6px; flex-wrap: wrap; margin-top: auto; padding-top: 6px; }
+.tag { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 6px; background: var(--green-soft); color: var(--green); font-weight: 600; }
+.tag.warn { background: var(--red-soft); color: var(--red); }
+
+/* Ventes */
+.kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.kpi { padding: 12px 10px; }
+.kpi .v { font-size: 18px; font-weight: 700; letter-spacing: -.3px; }
+.kpi .l { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.sale { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.sale:last-child { border-bottom: 0; }
+.sale img, .item img { width: 44px; height: 44px; border-radius: 8px; object-fit: cover; flex: none; background: var(--line); }
+.sale .n { flex: 1; min-width: 0; }
+.sale .n b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sale .p { font-weight: 700; text-align: right; white-space: nowrap; }
+
+/* Annonces */
+.item { display: flex; gap: 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+.item:last-child { border-bottom: 0; }
+.item input { width: 22px; height: 22px; accent-color: var(--green); flex: none; }
+.sticky-bar { position: sticky; bottom: calc(70px + env(safe-area-inset-bottom)); margin-top: 12px; }
+
+/* Réglages PC */
+.setting { padding: 14px; margin-bottom: 10px; }
+.setting .top { display: flex; align-items: center; gap: 10px; }
+.setting .top b { flex: 1; }
+.switch { position: relative; width: 50px; height: 30px; flex: none; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.switch span { position: absolute; inset: 0; border-radius: 30px; background: var(--line); transition: .2s; }
+.switch span::after { content: ""; position: absolute; left: 3px; top: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+.switch input:checked + span { background: var(--green); }
+.switch input:checked + span::after { transform: translateX(20px); }
+textarea { width: 100%; min-height: 84px; margin-top: 10px; padding: 10px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); resize: vertical; }
+.acc { display: flex; align-items: center; gap: 10px; padding: 11px 12px; border-bottom: 1px solid var(--line); }
+.acc:last-child { border-bottom: 0; }
+.acc b { flex: 1; }
+
+/* Connexion */
+#loginScreen { padding: 0 16px; }
+#login { max-width: 380px; margin: 9vh auto 0; padding: 24px 20px; }
+#login h1 { margin: 0 0 4px; font-size: 24px; }
+.field { display: block; margin-top: 12px; }
+.field span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.field input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--bg); font-size: 16px; }
+.msg { margin-top: 12px; font-size: 14px; color: var(--red); min-height: 1em; }
+.msg.ok { color: var(--green); }
+
+/* Feuilles (modales du bas) */
+.sheet-bg { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.45); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--card); width: 100%; max-width: 720px; border-radius: 18px 18px 0 0; padding: 18px 16px calc(18px + env(safe-area-inset-bottom)); max-height: 92vh; overflow: auto; }
+.sheet h3 { margin: 0 0 6px; font-size: 18px; }
+.sheet .stack { display: flex; flex-direction: column; gap: 9px; margin-top: 14px; }
+.sheet .stack .btn { width: 100%; padding: 14px; }
+
+/* Rognage manuel */
+.crop-wrap { position: relative; margin: 10px auto 0; touch-action: none; user-select: none; -webkit-user-select: none; width: max-content; max-width: 100%; }
+.crop-wrap canvas { display: block; max-width: 100%; height: auto; border: 1px solid var(--line); background: #fff; }
+.crop-sel { position: absolute; border: 2px solid #E0463A; background: rgba(224,70,58,.12); pointer-events: none; }
+
+/* Notifications */
+#toasts { position: fixed; left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom)); z-index: 60; display: flex; flex-direction: column; gap: 6px; align-items: center; pointer-events: none; }
+.toast { background: #1E2420; color: #fff; padding: 10px 14px; border-radius: 11px; font-size: 14px; max-width: 520px; box-shadow: 0 6px 20px rgba(0,0,0,.25); }
+.toast.error { background: #8C3527; } .toast.success { background: #1F4E3F; }
+@media (prefers-color-scheme: dark) { .toast { background: #ECEAE4; color: #141816; } .toast.error { background: #E0846F; } .toast.success { background: #6FB394; } }
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: sp .7s linear infinite; vertical-align: -2px; }
+@keyframes sp { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- ═══ Connexion ═══ -->
+<section id="loginScreen" class="hidden">
+  <div id="login" class="card">
+    <h1>📦 Vinted Tracker</h1>
+    <p class="muted small" style="margin:0">Connecte-toi avec le même email que sur le PC.</p>
+    <label class="field"><span>Email</span><input id="loginEmail" type="email" autocomplete="username" inputmode="email"></label>
+    <label class="field"><span>Mot de passe</span><input id="loginPass" type="password" autocomplete="current-password"></label>
+    <div class="row" style="margin-top:16px"><button class="btn primary grow" onclick="doLogin()">Se connecter</button></div>
+    <button class="btn small" style="margin-top:10px;width:100%" onclick="doReset()">Mot de passe oublié ?</button>
+    <div id="loginMsg" class="msg"></div>
+  </div>
+</section>
+
+<!-- ═══ Application ═══ -->
+<section id="appScreen" class="hidden">
+  <header>
+    <h1 id="viewTitle">Bordereaux</h1>
+    <span id="pcPill" class="pill"><span class="dot"></span><span id="pcPillText">PC…</span></span>
+  </header>
+  <main>
+    <!-- Bordereaux -->
+    <div id="view-labels" class="view active">
+      <div class="row">
+        <button id="printAllBtn" class="btn primary grow" onclick="printAll()">🖨️ Imprimer tous</button>
+        <button id="pollBtn" class="btn" onclick="pollLabels()">🔄 Vérifier</button>
+      </div>
+      <div class="seg" id="labelSeg">
+        <button class="active" data-f="todo" onclick="setLabelFilter('todo')">À imprimer</button>
+        <button data-f="done" onclick="setLabelFilter('done')">Imprimés</button>
+      </div>
+      <div id="labelsList"></div>
+      <div id="printedTools" class="hidden" style="margin-top:6px">
+        <button class="btn danger small" onclick="deletePrinted()">🗑️ Supprimer les bordereaux imprimés</button>
+      </div>
+    </div>
+
+    <!-- Ventes -->
+    <div id="view-sales" class="view">
+      <div class="seg" id="periodSeg">
+        <button class="active" data-p="month" onclick="setPeriod('month')">Ce mois</button>
+        <button data-p="year" onclick="setPeriod('year')">Cette année</button>
+        <button data-p="all" onclick="setPeriod('all')">Tout</button>
+      </div>
+      <div class="kpis">
+        <div class="card kpi"><div class="v" id="kCount">0</div><div class="l">Ventes</div></div>
+        <div class="card kpi"><div class="v" id="kCa">0 €</div><div class="l">Chiffre</div></div>
+        <div class="card kpi"><div class="v" id="kProfit">0 €</div><div class="l">Bénéfice</div></div>
+      </div>
+      <h2>Dernières ventes</h2>
+      <div class="card" id="salesList"></div>
+    </div>
+
+    <!-- Annonces -->
+    <div id="view-items" class="view">
+      <div class="seg" id="itemSeg">
+        <button class="active" data-m="active" onclick="setItemMode('active')">En ligne</button>
+        <button data-m="sold" onclick="setItemMode('sold')">Vendus à remettre</button>
+      </div>
+      <p class="muted small" id="itemHelp" style="margin:0 0 8px">Coche les annonces à republier : le PC les supprime et les remet en ligne (10 s entre chacune).</p>
+      <div id="queueInfo"></div>
+      <div class="card" id="itemsList"></div>
+      <div class="sticky-bar"><button id="itemsGo" class="btn primary" style="width:100%" onclick="sendItems()" disabled>Republier</button></div>
+    </div>
+
+    <!-- PC -->
+    <div id="view-pc" class="view">
+      <div class="card setting">
+        <div class="top"><b>État du PC</b><span id="pcState" class="muted small">—</span></div>
+        <div id="pcHealth" class="muted small" style="margin-top:6px"></div>
+      </div>
+      <h2>Compte Vinted actif</h2>
+      <div class="card" id="accList"></div>
+      <h2>Messages et offres</h2>
+      <div class="card setting">
+        <div class="top"><b>💬 Message après un like</b><label class="switch"><input type="checkbox" id="amOn" onchange="setRemote('set-automsg',{enabled:this.checked})"><span></span></label></div>
+        <div class="muted small" id="amInfo" style="margin-top:4px"></div>
+        <textarea id="amText" placeholder="Texte envoyé aux personnes qui likent"></textarea>
+        <button class="btn small" style="margin-top:8px" onclick="setRemote('set-automsg',{text:document.getElementById('amText').value})">Enregistrer le texte</button>
+      </div>
+      <div class="card setting">
+        <div class="top"><b>🙏 Message après une vente</b><label class="switch"><input type="checkbox" id="smOn" onchange="setRemote('set-salemsg',{enabled:this.checked})"><span></span></label></div>
+        <textarea id="smText" placeholder="Texte envoyé à l'acheteur"></textarea>
+        <button class="btn small" style="margin-top:8px" onclick="setRemote('set-salemsg',{text:document.getElementById('smText').value})">Enregistrer le texte</button>
+      </div>
+      <div class="card setting">
+        <div class="top"><b>🤝 Réponse auto aux offres</b><label class="switch"><input type="checkbox" id="obOn" onchange="setRemote('set-offerbot',{enabled:this.checked})"><span></span></label></div>
+        <div class="muted small" id="obInfo" style="margin-top:4px"></div>
+      </div>
+      <h2>Mon compte</h2>
+      <div class="card setting">
+        <div class="muted small" id="whoami"></div>
+        <button class="btn danger small" style="margin-top:10px" onclick="doLogout()">Se déconnecter</button>
+      </div>
+      <p class="muted small" style="text-align:center;margin-top:18px">Vinted Tracker · version téléphone du 27/11/2026</p>
+    </div>
+  </main>
+
+  <nav class="tabs">
+    <button class="active" data-v="labels" onclick="showView('labels')"><span class="ico">📦</span>Bordereaux<span id="labelBadge" class="badge hidden">0</span></button>
+    <button data-v="sales" onclick="showView('sales')"><span class="ico">💶</span>Ventes</button>
+    <button data-v="items" onclick="showView('items')"><span class="ico">👕</span>Annonces</button>
+    <button data-v="pc" onclick="showView('pc')"><span class="ico">🖥️</span>PC</button>
+  </nav>
+</section>
+
+<div id="sheetHost"></div>
+<div id="toasts"></div>
+
+<script>
+'use strict';
+/* ─── Firebase (même projet que l'appli PC) ─── */
+const firebaseConfig = {
+  apiKey: "AIzaSyAo7a5Trhwm-pfi9bwBqeN8jPd11kB390c",
+  authDomain: "vinted-tracker-87930.firebaseapp.com",
+  projectId: "vinted-tracker-87930",
+  storageBucket: "vinted-tracker-87930.firebasestorage.app",
+  messagingSenderId: "606267091181",
+  appId: "1:606267091181:web:fda4bd20f2cf731d0ac4e4"
+};
+if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+let db = null, auth = null, uid = null;
+let labels = [], sales = [], catalogue = [], sold = [], remote = null;
+let labelFilter = 'todo', period = 'month', itemMode = 'active';
+const selected = new Set();
+const unsubs = [];
+
+/* ─── Petits outils ─── */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const eur = (n) => (Number(n) || 0).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+const eurShort = (n) => Math.round(Number(n) || 0).toLocaleString('fr-FR') + ' €';
+const fmtDate = (t) => { const d = new Date(t); return isNaN(d) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }); };
+function toast(msg, kind = '', ms = 3200) {
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind; el.textContent = msg;
+  $('toasts').appendChild(el);
+  setTimeout(() => el.remove(), ms);
+}
+function b64ToBytes(b64) {
+  const bin = atob(b64); const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function userRef() { return db.collection('users').doc(uid); }
+
+/* ─── Feuilles (fenêtres du bas) ─── */
+function openSheet(html, onClose) {
+  closeSheet();
+  const bg = document.createElement('div');
+  bg.className = 'sheet-bg'; bg.id = 'sheetBg';
+  bg.innerHTML = `<div class="sheet">${html}</div>`;
+  bg.addEventListener('click', (e) => { if (e.target === bg) closeSheet(); });
+  bg._onClose = onClose;
+  $('sheetHost').appendChild(bg);
+  return bg.querySelector('.sheet');
+}
+function closeSheet() {
+  const bg = $('sheetBg');
+  if (!bg) return;
+  if (bg._onClose) try { bg._onClose(); } catch (_) {}
+  bg.remove();
+}
+function confirmSheet(title, text, okLabel, onOk, danger) {
+  const s = openSheet(`<h3>${esc(title)}</h3><p class="muted">${esc(text)}</p>
+    <div class="stack"><button class="btn ${danger ? 'danger' : 'primary'}" id="cfOk">${esc(okLabel)}</button>
+    <button class="btn" onclick="closeSheet()">Annuler</button></div>`);
+  s.querySelector('#cfOk').onclick = () => { closeSheet(); onOk(); };
+}
+
+/* ─── Connexion ─── */
+function friendlyAuthError(e) {
+  const c = e && e.code || '';
+  if (c.includes('invalid-credential') || c.includes('wrong-password') || c.includes('user-not-found') || c.includes('invalid-login')) return 'Email ou mot de passe incorrect.';
+  if (c.includes('invalid-email')) return 'Adresse email invalide.';
+  if (c.includes('too-many-requests')) return 'Trop d’essais, réessaie dans quelques minutes.';
+  if (c.includes('network')) return 'Pas de connexion internet.';
+  return (e && e.message) || 'Erreur inconnue';
+}
+async function doLogin() {
+  const email = $('loginEmail').value.trim(), pass = $('loginPass').value;
+  const m = $('loginMsg');
+  if (!email || !pass) { m.className = 'msg'; m.textContent = 'Remplis l’email et le mot de passe.'; return; }
+  m.className = 'msg ok'; m.textContent = 'Connexion…';
+  try { await auth.signInWithEmailAndPassword(email, pass); }
+  catch (e) { m.className = 'msg'; m.textContent = friendlyAuthError(e); }
+}
+async function doReset() {
+  const email = $('loginEmail').value.trim(), m = $('loginMsg');
+  if (!email) { m.className = 'msg'; m.textContent = 'Écris ton email puis appuie à nouveau sur « Mot de passe oublié ».'; return; }
+  try { await auth.sendPasswordResetEmail(email); m.className = 'msg ok'; m.textContent = 'Email de réinitialisation envoyé.'; }
+  catch (e) { m.className = 'msg'; m.textContent = friendlyAuthError(e); }
+}
+function doLogout() {
+  confirmSheet('Déconnexion', 'Te déconnecter sur ce téléphone ? Tes données restent dans le cloud.', 'Se déconnecter', () => auth.signOut(), true);
+}
+
+function start() {
+  if (typeof firebase === 'undefined') {
+    $('loginScreen').classList.remove('hidden');
+    $('loginMsg').textContent = 'Impossible de charger Firebase : vérifie ta connexion internet puis recharge la page.';
+    return;
+  }
+  firebase.initializeApp(firebaseConfig);
+  auth = firebase.auth();
+  db = firebase.firestore();
+  db.enablePersistence({ synchronizeTabs: true }).catch(() => {});
+  auth.onAuthStateChanged((user) => {
+    unsubs.splice(0).forEach(u => { try { u(); } catch (_) {} });
+    if (user && !user.isAnonymous) {
+      uid = user.uid;
+      $('loginScreen').classList.add('hidden');
+      $('appScreen').classList.remove('hidden');
+      $('whoami').textContent = 'Connecté : ' + (user.email || '');
+      listen();
+    } else {
+      uid = null;
+      $('appScreen').classList.add('hidden');
+      $('loginScreen').classList.remove('hidden');
+    }
+  });
+}
+
+/* ─── Écoute Firestore ─── */
+function listen() {
+  unsubs.push(userRef().collection('labels').onSnapshot(snap => {
+    labels = snap.docs.map(d => ({ docId: d.id, ...d.data() }))
+      .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    renderLabels();
+  }, err => toast('Bordereaux : ' + err.message, 'error')));
+  unsubs.push(userRef().collection('sales').onSnapshot(snap => {
+    sales = snap.docs.map(d => d.data());
+    renderSales();
+  }, err => toast('Ventes : ' + err.message, 'error')));
+  unsubs.push(userRef().collection('catalogue').onSnapshot(snap => {
+    catalogue = snap.docs.map(d => d.data()).sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    if (itemMode === 'active') renderItems();
+  }, () => {}));
+  unsubs.push(userRef().collection('sold-catalogue').onSnapshot(snap => {
+    sold = snap.docs.map(d => d.data()).sort((a, b) => (a.title || '').localeCompare(b.title || ''));
+    if (itemMode === 'sold') renderItems();
+  }, () => {}));
+  unsubs.push(userRef().collection('remote').doc('state').onSnapshot(doc => {
+    remote = doc.exists ? doc.data() : null;
+    renderPc();
+  }, () => {}));
+  // File d'attente republication / remise en vente en cours
+  unsubs.push(userRef().collection('republish-queue').orderBy('createdAt', 'desc').limit(3).onSnapshot(s => { queues.republish = s.docs.map(d => d.data()); renderQueue(); }, () => {}));
+  unsubs.push(userRef().collection('relist-queue').orderBy('createdAt', 'desc').limit(3).onSnapshot(s => { queues.relist = s.docs.map(d => d.data()); renderQueue(); }, () => {}));
+  clearInterval(window._pcTick);
+  window._pcTick = setInterval(renderPcPill, 15000);
+}
+
+/* ─── Navigation ─── */
+const TITLES = { labels: 'Bordereaux', sales: 'Ventes', items: 'Annonces', pc: 'Mon PC' };
+function showView(v) {
+  document.querySelectorAll('.view').forEach(e => e.classList.toggle('active', e.id === 'view-' + v));
+  document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.v === v));
+  $('viewTitle').textContent = TITLES[v];
+  window.scrollTo(0, 0);
+}
+
+/* ─── Commandes vers le PC ─── */
+// Le PC écoute users/{uid}/<collection> (status = pending) et répond en changeant le status.
+async function sendCommand(collection, data, { waitMs = 90000, quiet = false } = {}) {
+  const ref = await userRef().collection(collection).add({ ...data, status: 'pending', createdAt: Date.now(), source: 'mobile' });
+  return new Promise((resolve) => {
+    let done = false;
+    const stop = ref.onSnapshot(doc => {
+      const d = doc.data();
+      if (!d || done) return;
+      if (d.status === 'done' || d.status === 'error') { done = true; stop(); clearTimeout(t); resolve(d); }
+    }, () => {});
+    const t = setTimeout(() => {
+      if (done) return;
+      done = true; stop();
+      if (!quiet) toast('Le PC n’a pas encore répondu : la commande sera faite dès qu’il sera allumé avec l’appli ouverte.', '', 5000);
+      resolve({ status: 'waiting' });
+    }, waitMs);
+  });
+}
+function pcOnline() { return !!(remote && remote.updatedAt && Date.now() - remote.updatedAt < 70000); }
+function renderPcPill() {
+  const on = pcOnline();
+  $('pcPill').className = 'pill ' + (on ? 'on' : 'off');
+  $('pcPillText').textContent = on ? 'PC allumé' : 'PC éteint';
+  const st = $('pcState');
+  if (st) st.textContent = remote && remote.updatedAt
+    ? (on ? 'En ligne' : 'Hors ligne depuis ' + new Date(remote.updatedAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))
+    : 'Jamais vu';
+}
+
+/* ═══ BORDEREAUX ═══ */
+function setLabelFilter(f) {
+  labelFilter = f;
+  document.querySelectorAll('#labelSeg button').forEach(b => b.classList.toggle('active', b.dataset.f === f));
+  renderLabels();
+}
+function labelBytes(l) { return l.pdfBase64 ? b64ToBytes(l.pdfBase64) : null; }
+function renderLabels() {
+  const todo = labels.filter(l => !l.printed);
+  const list = labelFilter === 'todo' ? todo : labels.filter(l => l.printed);
+  const badge = $('labelBadge');
+  badge.textContent = todo.length; badge.classList.toggle('hidden', !todo.length);
+  const printable = todo.filter(l => l.pdfBase64);
+  $('printAllBtn').disabled = !printable.length;
+  $('printAllBtn').textContent = printable.length ? `🖨️ Imprimer tous (${printable.length})` : '🖨️ Imprimer tous';
+  $('printedTools').classList.toggle('hidden', labelFilter !== 'done' || !list.length);
+  const out = $('labelsList');
+  if (!list.length) {
+    out.innerHTML = labelFilter === 'todo'
+      ? '<div class="empty"><span class="big">✅</span>Aucun bordereau à imprimer.<br><span class="small">Appuie sur « Vérifier » pour que le PC regarde sur Vinted.</span></div>'
+      : '<div class="empty"><span class="big">🗂️</span>Aucun bordereau imprimé.</div>';
+    return;
+  }
+  out.innerHTML = list.map(l => {
+    const id = esc(l.docId);
+    const sizeKb = l.size ? Math.round(l.size / 1024) + ' Ko' : '';
+    const noPdf = !l.pdfBase64;
+    return `<div class="card label-card" data-id="${id}">
+      <div class="thumb" data-thumb="${id}">${noPdf ? 'pas de PDF' : '<span class="spin"></span>'}</div>
+      <div class="label-info">
+        <div class="label-title">${esc(l.itemTitle || 'Bordereau ' + l.orderId)}</div>
+        <div class="small muted">${esc(l.buyerName || '')}${l.itemPrice ? ' · ' + eur(l.itemPrice) : ''}</div>
+        <div class="small">${l.carrier ? `<span class="tag">${esc(l.carrier)}</span> ` : ''}${noPdf ? '<span class="tag warn">' + (l.tooBig ? 'trop gros : imprime depuis le PC' : 'PDF pas encore envoyé') + '</span>' : ''}<span class="muted"> ${fmtDate(l.createdAt)} ${sizeKb}</span></div>
+        <div class="label-actions">
+          ${noPdf ? '' : `<button class="btn small" onclick="shareOne('${id}')">📤 Ouvrir</button>`}
+          <button class="btn small" onclick="labelMenu('${id}')">⋯ Modifier</button>
+          <button class="btn small" onclick="togglePrinted('${id}')">${l.printed ? '↩︎ À réimprimer' : '✓ Imprimé'}</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  observeThumbs();
+}
+
+// Miniatures : rendu de la 1re page avec pdf.js (respecte la rotation du PDF, comme l'imprimante)
+const thumbCache = new Map();
+let thumbObs = null;
+function observeThumbs() {
+  if (!thumbObs) thumbObs = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { thumbObs.unobserve(e.target); drawThumb(e.target); }
+  }, { rootMargin: '200px' });
+  document.querySelectorAll('[data-thumb]').forEach(el => thumbObs.observe(el));
+}
+async function renderPdfPage(bytes, maxW, maxH) {
+  const pdf = await pdfjsLib.getDocument({ data: bytes }).promise;
+  const page = await pdf.getPage(1);
+  const v1 = page.getViewport({ scale: 1 });
+  const scale = Math.min(maxW / v1.width, maxH / v1.height);
+  const vp = page.getViewport({ scale });
+  const c = document.createElement('canvas');
+  c.width = Math.round(vp.width); c.height = Math.round(vp.height);
+  await page.render({ canvasContext: c.getContext('2d'), viewport: vp }).promise;
+  pdf.destroy();
+  return c;
+}
+async function drawThumb(el) {
+  const l = labels.find(x => x.docId === el.dataset.thumb);
+  if (!l || !l.pdfBase64 || !window.pdfjsLib) return;
+  const key = l.docId + ':' + (l.uploadedAt || '');
+  try {
+    let url = thumbCache.get(key);
+    if (!url) {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const c = await renderPdfPage(labelBytes(l), 86 * dpr, 118 * dpr);
+      url = c.toDataURL('image/png');
+      thumbCache.set(key, url);
+    }
+    el.innerHTML = `<img src="${url}" alt="" style="max-width:100%;max-height:100%;display:block">`;
+  } catch (e) { el.textContent = 'aperçu impossible'; }
+}
+
+function pdfFile(bytes, name) { return new File([bytes], name, { type: 'application/pdf' }); }
+function canShareFiles(file) { try { return !!(navigator.canShare && navigator.canShare({ files: [file] })); } catch (_) { return false; } }
+
+// Fenêtre « Partager / Ouvrir » : le partage doit partir d'un appui direct (règle d'iOS),
+// donc on prépare le PDF d'abord, puis l'utilisateur appuie sur « Envoyer à l'imprimante ».
+function showPdfSheet(file, title, subtitle, orderIds) {
+  const url = URL.createObjectURL(file);
+  const share = canShareFiles(file);
+  const s = openSheet(`<h3>${esc(title)}</h3><p class="muted small" style="margin:0">${esc(subtitle)}</p>
+    <div class="stack">
+      ${share ? '<button class="btn primary" id="shShare">📤 Envoyer à l’appli de l’imprimante</button>' : ''}
+      <a class="btn ${share ? '' : 'primary'}" href="${url}" target="_blank" rel="noopener" style="text-decoration:none">📄 Ouvrir le PDF</a>
+      <a class="btn" href="${url}" download="${esc(file.name)}" style="text-decoration:none">⬇️ Enregistrer dans Fichiers</a>
+      ${orderIds && orderIds.length ? `<button class="btn" id="shDone">✅ C’est imprimé : les passer dans « Imprimés »</button>` : ''}
+      <button class="btn" onclick="closeSheet()">Fermer</button>
+    </div>`, () => setTimeout(() => URL.revokeObjectURL(url), 60000));
+  const b = s.querySelector('#shShare');
+  if (b) b.onclick = async () => {
+    try { await navigator.share({ files: [file], title: file.name }); }
+    catch (e) { if (e && e.name !== 'AbortError') toast('Partage impossible : ' + e.message, 'error'); }
+  };
+  const d = s.querySelector('#shDone');
+  if (d) d.onclick = () => { closeSheet(); markPrinted(orderIds, true); };
+}
+
+async function shareOne(id) {
+  const l = labels.find(x => x.docId === id);
+  if (!l || !l.pdfBase64) return;
+  // Même chemin que « Imprimer tous » (copie de page pdf-lib) pour un résultat identique
+  try {
+    const bytes = await mergeLabels([l]);
+    showPdfSheet(pdfFile(bytes, `bordereau-${l.orderId}.pdf`), l.itemTitle || 'Bordereau', `${l.carrier || ''} ${l.buyerName ? '· ' + l.buyerName : ''}`, l.printed ? null : [l.orderId]);
+  } catch (e) { toast('PDF illisible : ' + e.message, 'error'); }
+}
+
+// Fusion : copyPages garde chaque page telle quelle (taille, rognage ET rotation /Rotate),
+// donc chaque bordereau reste vertical dans le gros PDF.
+async function mergeLabels(list) {
+  const { PDFDocument } = PDFLib;
+  const out = await PDFDocument.create();
+  for (const l of list) {
+    const src = await PDFDocument.load(labelBytes(l), { ignoreEncryption: true });
+    const pages = await out.copyPages(src, src.getPageIndices());
+    pages.forEach(p => out.addPage(p));
+  }
+  return out.save();
+}
+
+async function printAll() {
+  const list = labels.filter(l => !l.printed && l.pdfBase64).slice().reverse(); // plus ancien en premier
+  if (!list.length) return toast('Aucun bordereau à imprimer');
+  const btn = $('printAllBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spin"></span> Préparation…';
+  try {
+    const bytes = await mergeLabels(list);
+    const d = new Date();
+    const name = `bordereaux-${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}.pdf`;
+    const skipped = labels.filter(l => !l.printed && !l.pdfBase64).length;
+    showPdfSheet(pdfFile(bytes, name), `${list.length} bordereau${list.length > 1 ? 'x' : ''} prêt${list.length > 1 ? 's' : ''}`,
+      `Un seul PDF, un bordereau par page, tous à la verticale.${skipped ? ` ${skipped} bordereau(x) sans PDF ne sont pas inclus.` : ''}`, list.map(l => l.orderId));
+  } catch (e) {
+    toast('Erreur pendant la fusion : ' + e.message, 'error', 6000);
+  } finally { renderLabels(); }
+}
+
+async function markPrinted(orderIds, printed) {
+  try {
+    const batch = db.batch();
+    for (const id of orderIds) batch.update(userRef().collection('labels').doc(String(id)), { printed: !!printed, printedAt: printed ? Date.now() : null });
+    await batch.commit();
+    toast(printed ? `✅ ${orderIds.length} bordereau(x) marqué(s) imprimé(s)` : 'Remis dans « À imprimer »', 'success');
+  } catch (e) { toast('Erreur : ' + e.message, 'error'); return; }
+  // Le PC met aussi à jour sa liste (sinon il remettrait « non imprimé » au prochain envoi)
+  sendCommand('commands', { type: 'mark-printed', orderIds: orderIds.map(String), printed: !!printed }, { quiet: true });
+}
+function togglePrinted(id) {
+  const l = labels.find(x => x.docId === id);
+  if (l) markPrinted([l.orderId], !l.printed);
+}
+
+function labelMenu(id) {
+  const l = labels.find(x => x.docId === id);
+  if (!l) return;
+  const s = openSheet(`<h3>${esc(l.itemTitle || 'Bordereau')}</h3>
+    <p class="muted small" style="margin:0">Les modifications sont faites par le PC puis renvoyées ici (quelques secondes si le PC est allumé).</p>
+    <div class="stack">
+      ${l.pdfBase64 ? '<button class="btn" id="mCrop">✂️ Rogner à la main</button>' : ''}
+      <button class="btn" id="mRotR">↻ Tourner d’un quart à droite</button>
+      <button class="btn" id="mRotL">↺ Tourner d’un quart à gauche</button>
+      <button class="btn" id="mReset">⟲ Revenir à l’original Vinted</button>
+      <button class="btn" onclick="closeSheet()">Fermer</button>
+    </div>`);
+  if (s.querySelector('#mCrop')) s.querySelector('#mCrop').onclick = () => { closeSheet(); openCrop(id); };
+  s.querySelector('#mRotR').onclick = () => { closeSheet(); labelCmd('rotate-label', l, { delta: 90 }, '↻ Rotation'); };
+  s.querySelector('#mRotL').onclick = () => { closeSheet(); labelCmd('rotate-label', l, { delta: 270 }, '↺ Rotation'); };
+  s.querySelector('#mReset').onclick = () => { closeSheet(); labelCmd('reset-crop-label', l, {}, '⟲ Original'); };
+}
+async function labelCmd(type, l, extra, what) {
+  toast(`${what} envoyée au PC…`);
+  const r = await sendCommand('commands', { type, orderId: String(l.orderId), ...extra });
+  if (r.status === 'done') toast(`${what} faite ✓`, 'success');
+  else if (r.status === 'error') toast(`${what} : ${r.error || 'erreur'}`, 'error', 6000);
+}
+
+// Rognage manuel : on dessine un rectangle sur la page telle qu'elle s'affiche ;
+// le PC reçoit les proportions (0..1) et coupe exactement cette zone.
+async function openCrop(id) {
+  const l = labels.find(x => x.docId === id);
+  if (!l) return;
+  const s = openSheet(`<h3>✂️ Rogner</h3><p class="muted small" style="margin:0">Glisse ton doigt pour entourer la partie à garder.</p>
+    <div class="crop-wrap" id="cropWrap"><div class="empty"><span class="spin"></span></div></div>
+    <div class="stack"><button class="btn primary" id="cropOk" disabled>Rogner cette zone</button><button class="btn" onclick="closeSheet()">Annuler</button></div>`);
+  let canvas;
+  try {
+    const w = Math.min(window.innerWidth - 40, 680) * Math.min(window.devicePixelRatio || 1, 2);
+    canvas = await renderPdfPage(labelBytes(l), w, w * 1.6);
+  } catch (e) { s.querySelector('#cropWrap').innerHTML = '<p class="msg">Aperçu impossible.</p>'; return; }
+  const wrap = s.querySelector('#cropWrap');
+  wrap.innerHTML = ''; wrap.appendChild(canvas);
+  const sel = document.createElement('div'); sel.className = 'crop-sel hidden'; wrap.appendChild(sel);
+  let a = null, r = null;
+  const pt = (e) => { const b = canvas.getBoundingClientRect(); return { x: Math.min(1, Math.max(0, (e.clientX - b.left) / b.width)), y: Math.min(1, Math.max(0, (e.clientY - b.top) / b.height)) }; };
+  const draw = () => {
+    const b = canvas.getBoundingClientRect();
+    sel.classList.remove('hidden');
+    Object.assign(sel.style, { left: r.x * b.width + 'px', top: r.y * b.height + 'px', width: (r.maxX - r.x) * b.width + 'px', height: (r.maxY - r.y) * b.height + 'px' });
+  };
+  wrap.addEventListener('pointerdown', (e) => { a = pt(e); wrap.setPointerCapture(e.pointerId); e.preventDefault(); });
+  wrap.addEventListener('pointermove', (e) => {
+    if (!a) return;
+    const p = pt(e);
+    r = { x: Math.min(a.x, p.x), y: Math.min(a.y, p.y), maxX: Math.max(a.x, p.x), maxY: Math.max(a.y, p.y) };
+    draw();
+  });
+  wrap.addEventListener('pointerup', () => { a = null; s.querySelector('#cropOk').disabled = !(r && r.maxX - r.x > 0.03 && r.maxY - r.y > 0.03); });
+  s.querySelector('#cropOk').onclick = () => { closeSheet(); labelCmd('crop-label', l, { ratios: r }, '✂️ Rognage'); };
+}
+
+function pollLabels() {
+  const b = $('pollBtn');
+  b.disabled = true; b.innerHTML = '<span class="spin"></span>';
+  sendCommand('commands', { type: 'poll-labels' }).then(r => {
+    if (r.status === 'done') toast(`Vérification faite : ${r.added || 0} nouveau(x) bordereau(x)`, 'success');
+    else if (r.status === 'error') toast('Vérification : ' + (r.error || 'erreur'), 'error', 6000);
+  }).finally(() => { b.disabled = false; b.textContent = '🔄 Vérifier'; });
+}
+function deletePrinted() {
+  const n = labels.filter(l => l.printed).length;
+  confirmSheet('Supprimer les imprimés', `Le PC va effacer les ${n} bordereau(x) déjà imprimé(s). Ceux à imprimer sont gardés.`, 'Supprimer', async () => {
+    const r = await sendCommand('commands', { type: 'delete-printed-labels' });
+    if (r.status === 'done') toast(`🗑️ ${r.count || 0} bordereau(x) supprimé(s)`, 'success');
+  }, true);
+}
+
+/* ═══ VENTES ═══ */
+function setPeriod(p) {
+  period = p;
+  document.querySelectorAll('#periodSeg button').forEach(b => b.classList.toggle('active', b.dataset.p === p));
+  renderSales();
+}
+function renderSales() {
+  const now = new Date();
+  const ym = now.toISOString().slice(0, 7), y = String(now.getFullYear());
+  const inPeriod = sales.filter(s => period === 'all' || (period === 'month' ? String(s.date || '').startsWith(ym) : String(s.date || '').startsWith(y)));
+  const ca = inPeriod.reduce((t, s) => t + (Number(s.price) || 0), 0);
+  const profit = inPeriod.reduce((t, s) => t + (Number(s.price) || 0) - (Number(s.cost) || 0), 0);
+  $('kCount').textContent = inPeriod.length;
+  $('kCa').textContent = eurShort(ca);
+  $('kProfit').textContent = eurShort(profit);
+  const list = sales.slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')) || (b.createdAt || 0) - (a.createdAt || 0)).slice(0, 60);
+  $('salesList').innerHTML = list.length ? list.map(s => `<div class="sale">
+      ${s.photo ? `<img src="${esc(s.photo)}" alt="" loading="lazy">` : '<img alt="">'}
+      <div class="n"><b>${esc(s.name || 'Vente')}</b><span class="small muted">${esc(s.date ? new Date(s.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '')}</span></div>
+      <div class="p">${eur(s.price)}<div class="small muted">+${eur((Number(s.price) || 0) - (Number(s.cost) || 0))}</div></div>
+    </div>`).join('') : '<div class="empty"><span class="big">💶</span>Aucune vente pour l’instant.</div>';
+}
+
+/* ═══ ANNONCES ═══ */
+const queues = { republish: [], relist: [] };
+function setItemMode(m) {
+  itemMode = m; selected.clear();
+  document.querySelectorAll('#itemSeg button').forEach(b => b.classList.toggle('active', b.dataset.m === m));
+  $('itemHelp').textContent = m === 'active'
+    ? 'Coche les annonces à republier : le PC les supprime et les remet en ligne (10 s entre chacune).'
+    : 'Coche les articles vendus à remettre en vente : le PC recrée l’annonce à l’identique.';
+  renderItems(); renderQueue();
+}
+function renderItems() {
+  const list = itemMode === 'active' ? catalogue : sold;
+  $('itemsList').innerHTML = list.length ? list.map(it => {
+    const id = esc(it.id);
+    return `<label class="item"><input type="checkbox" ${selected.has(String(it.id)) ? 'checked' : ''} onchange="toggleItem('${id}', this.checked)">
+      ${it.photo ? `<img src="${esc(it.photo)}" alt="" loading="lazy">` : '<img alt="">'}
+      <div class="n" style="flex:1;min-width:0"><b style="display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(it.title || 'Article')}</b>
+      <span class="small muted">${eur(it.price)}${it.brand ? ' · ' + esc(it.brand) : ''}${it.size ? ' · ' + esc(it.size) : ''}${itemMode === 'active' ? ` · ❤️ ${it.favouriteCount || 0}` : ''}${it.isReserved ? ' · réservé' : ''}</span></div></label>`;
+  }).join('') : `<div class="empty"><span class="big">👕</span>${itemMode === 'active' ? 'Aucune annonce reçue du PC.<br><span class="small">Ouvre l’onglet Annonces sur le PC une fois pour les envoyer.</span>' : 'Aucun article vendu à remettre en vente.'}</div>`;
+  updateItemsBtn();
+}
+function toggleItem(id, on) { on ? selected.add(String(id)) : selected.delete(String(id)); updateItemsBtn(); }
+function updateItemsBtn() {
+  const b = $('itemsGo');
+  b.disabled = !selected.size;
+  b.textContent = (itemMode === 'active' ? 'Republier' : 'Remettre en vente') + (selected.size ? ` (${selected.size})` : '');
+}
+function sendItems() {
+  const ids = [...selected];
+  const col = itemMode === 'active' ? 'republish-queue' : 'relist-queue';
+  const what = itemMode === 'active' ? 'Republier' : 'Remettre en vente';
+  confirmSheet(what, `${what} ${ids.length} article(s) ? Le PC s’en occupe (environ ${Math.ceil(ids.length * 10 / 60)} min).`, what, async () => {
+    try {
+      await userRef().collection(col).add({ itemIds: ids, status: 'pending', createdAt: Date.now(), source: 'mobile' });
+      selected.clear(); renderItems();
+      toast('Envoyé au PC ✓', 'success');
+    } catch (e) { toast('Erreur : ' + e.message, 'error'); }
+  });
+}
+function renderQueue() {
+  const q = (itemMode === 'active' ? queues.republish : queues.relist).find(c => c.status === 'pending' || c.status === 'processing');
+  $('queueInfo').innerHTML = q ? `<div class="card setting small"><span class="spin"></span> ${q.status === 'pending' ? 'En attente du PC' : 'En cours'} : ${q.currentIndex || 0}/${(q.itemIds || []).length} article(s)</div>` : '';
+}
+
+/* ═══ PC ═══ */
+function renderPc() {
+  renderPcPill();
+  const r = remote || {};
+  const h = r.health;
+  const hs = { green: '🟢 Compte Vinted en forme', orange: '🟠 Prudence : le compte ralentit', red: '🔴 Compte en pause (Vinted bloque)' };
+  $('pcHealth').textContent = h ? (hs[h.status] || '') : 'Ouvre l’appli sur le PC pour voir son état.';
+  const accs = r.accounts || [];
+  $('accList').innerHTML = accs.length ? accs.map(a => {
+    const id = esc(a.id);
+    const active = String(a.id) === String(r.activeId);
+    return `<div class="acc"><b>${esc(a.name || a.username || a.login || a.id)}</b>${active ? '<span class="tag">actif</span>' : `<button class="btn small" onclick="switchAccount('${id}')">Utiliser</button>`}</div>`;
+  }).join('') : '<div class="empty small">Aucun compte reçu du PC.</div>';
+  const am = r.autoMessage, sm = r.saleMessage, ob = r.offerBot;
+  setIfIdle('amOn', 'checked', !!(am && am.enabled));
+  setIfIdle('amText', 'value', (am && am.text) || '');
+  $('amInfo').textContent = am ? `${am.sentToday || 0}/${am.dailyMax || 0} envoyés aujourd’hui · ${am.queueCount || 0} en attente` : '';
+  setIfIdle('smOn', 'checked', !!(sm && sm.enabled));
+  setIfIdle('smText', 'value', (sm && sm.text) || '');
+  setIfIdle('obOn', 'checked', !!(ob && ob.enabled));
+  $('obInfo').textContent = ob ? `${ob.simulate !== false ? 'Mode test (rien n’est envoyé)' : 'Mode réel'} · accepte dès ${ob.acceptPct || 80} % du prix · contre-offre à ${ob.counterPct || 90} %` : '';
+}
+function setIfIdle(id, prop, val) { const el = $(id); if (el && document.activeElement !== el) el[prop] = val; }
+async function setRemote(type, updates) {
+  if (!pcOnline()) toast('PC éteint : le réglage sera appliqué à son prochain démarrage.');
+  const r = await sendCommand('remote-commands', { type, updates }, { quiet: true, waitMs: 30000 });
+  if (r.status === 'done') toast('Réglage appliqué sur le PC ✓', 'success');
+  else if (r.status === 'error') toast('Erreur : ' + (r.error || ''), 'error');
+}
+async function switchAccount(accountId) {
+  const r = await sendCommand('remote-commands', { type: 'switch-account', accountId }, { quiet: true, waitMs: 30000 });
+  if (r.status === 'done') toast('Compte changé ✓', 'success');
+}
+
+start();
+</script>
+</body>
+</html>
