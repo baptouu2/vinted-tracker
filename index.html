@@ -20,6 +20,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="chart.umd.min.js"></script>
 <style>
 /* ═══ Thème Forest (même palette et mêmes polices que l'appli PC « Vinted Forest ») ═══ */
 :root {
@@ -129,6 +130,57 @@ h2 em { color: var(--gold); }
 .sale .n b { display: block; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sale .p { font: 500 16px/1.2 var(--serif); text-align: right; white-space: nowrap; }
 .sale .p .small { font-family: var(--sans); color: var(--emerald); }
+.sale .p.loss { color: var(--rust); }
+.cdot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: 1px; }
+
+/* Aperçu */
+.ov-hero { border-radius: var(--radius); color: #F0EAD4; padding: 20px 18px; background: linear-gradient(155deg, #2D5A40 0%, #1F4030 50%, #163827 100%); box-shadow: 0 14px 40px rgba(22, 56, 39, .28); position: relative; overflow: hidden; }
+.ov-hero::after { content: ''; position: absolute; right: -50px; top: -50px; width: 170px; height: 170px; border-radius: 50%; background: radial-gradient(circle, rgba(184, 149, 106, .3), transparent 70%); pointer-events: none; }
+.ov-hero .hb { position: relative; z-index: 1; }
+.ov-hero .hb2 { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(240, 234, 212, .16); }
+.ov-hero .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 1.2px; color: rgba(240, 234, 212, .72); }
+.ov-hero .lbl.gold { color: #D4A76A; }
+.ov-hero .amt { font: 500 36px/1.1 var(--serif); letter-spacing: -1px; margin: 6px 0 8px; }
+.ov-hero .amt-rev { font-size: 28px; color: #F3E3C3; }
+.ov-hero .meta { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: rgba(240, 234, 212, .8); }
+.ov-hero .meta b { color: #F0EAD4; font-weight: 600; }
+.ov-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.ov-stat { padding: 14px; }
+.ov-stat .sl { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-muted); }
+.ov-stat .sv { font: 500 22px/1.15 var(--serif); letter-spacing: -.5px; margin: 6px 0 3px; color: var(--emerald-dark); }
+.ov-stat .ss { font-size: 12px; color: var(--ink-muted); }
+.ov-topcat { margin-top: 12px; padding: 16px; }
+.tc-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--ink-muted); }
+.tc-name { font: italic 500 26px/1.15 var(--serif); color: var(--emerald); margin: 6px 0 12px; }
+.tc-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 10px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.tc-stats div { text-align: center; }
+.tc-stats span { display: block; font-size: 10.5px; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .6px; }
+.tc-stats b { font: 500 16px/1.4 var(--serif); }
+.tc-best { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--gold-soft); }
+.tc-best-label { font-size: 11px; color: #7A5E3A; font-weight: 600; letter-spacing: .4px; }
+.tc-best-info { display: flex; gap: 8px; justify-content: space-between; align-items: baseline; margin-top: 3px; }
+.tc-best-info span { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tc-best-info b { font: 500 15px var(--serif); color: var(--emerald); white-space: nowrap; }
+.tc-podium-title { font: italic 15px var(--serif-alt); color: var(--ink-muted); margin: 14px 0 6px; }
+.pod { display: grid; grid-template-columns: 26px minmax(0, 1fr) 70px auto; gap: 8px; align-items: center; padding: 5px 0; font-size: 13px; }
+.pod-rank { font: italic 600 15px var(--serif); color: var(--gold); text-align: center; }
+.pod-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod-bar { height: 6px; border-radius: 6px; background: var(--surface-tint); overflow: hidden; }
+.pod-bar span { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--emerald), #5B8060); }
+.pod b { font: 500 14px var(--serif); }
+.ov-chart { margin-top: 12px; padding: 14px 12px 10px; }
+.ch-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.ch-head.plain { padding: 0 4px; }
+.ch-title { flex: 1; min-width: 0; text-align: center; }
+.ch-head.plain .ch-title { text-align: left; }
+.ch-title b { display: block; font: 500 18px/1.2 var(--serif); letter-spacing: -.3px; }
+.ch-title span { font: italic 13px var(--serif-alt); color: var(--ink-muted); }
+.ch-nav { width: 36px; height: 36px; flex: none; border-radius: 50%; border: 1px solid var(--border); background: var(--paper); font-size: 22px; line-height: 1; color: var(--ink-soft); }
+.ch-nav:disabled { opacity: .3; }
+.ch-wrap { position: relative; height: 240px; touch-action: pan-y; }
+.ch-wrap.donut { height: 280px; }
+.ch-wrap.is-empty::after { content: 'Pas encore de ventes sur 30 jours'; position: absolute; inset: 0; display: grid; place-items: center; font: italic 15px var(--serif-alt); color: var(--ink-muted); }
+.ch-hint { text-align: center; font: italic 12px var(--serif-alt); color: var(--ink-muted); margin-top: 4px; }
 
 /* Annonces */
 .item { display: flex; gap: 10px; align-items: center; padding: 11px 14px; border-bottom: 1px solid var(--border); }
@@ -207,12 +259,82 @@ textarea { width: 100%; min-height: 84px; margin-top: 10px; padding: 10px 12px; 
 <section id="appScreen" class="hidden">
   <header>
     <div class="brand-glyph">v</div>
-    <div class="brand"><div class="brand-text">Vinted<em>Forest</em></div><span id="viewTitle">Bordereaux</span></div>
+    <div class="brand"><div class="brand-text">Vinted<em>Forest</em></div><span id="viewTitle">Aperçu</span></div>
     <span id="pcPill" class="pill"><span class="dot"></span><span id="pcPillText">PC…</span></span>
   </header>
   <main>
+    <!-- Aperçu (même tableau de bord que l'onglet Aperçu du PC) -->
+    <div id="view-overview" class="view active">
+      <div class="ov-hero">
+        <div class="hb">
+          <div class="lbl">Bénéfice cumulé — Total</div>
+          <div class="amt" id="ovProfit">0,00 €</div>
+          <div class="meta"><span><b id="ovCount">0</b> ventes</span><span>Marge moy. <b id="ovMargin">0 %</b></span></div>
+        </div>
+        <div class="hb hb2">
+          <div class="lbl gold">Chiffre d'affaires — Total</div>
+          <div class="amt amt-rev" id="ovRevenue">0,00 €</div>
+          <div class="meta"><span>Coût investi <b id="ovCost">0 €</b></span></div>
+        </div>
+      </div>
+
+      <div class="ov-stats">
+        <div class="card ov-stat"><div class="sl">Ce mois-ci</div><div class="sv" id="ovMonth">0,00 €</div><div class="ss">Bénéfice · <span id="ovMonthCount">0 vente</span></div></div>
+        <div class="card ov-stat"><div class="sl">7 derniers jours</div><div class="sv" id="ovWeek">0,00 €</div><div class="ss">Bénéfice net</div></div>
+        <div class="card ov-stat"><div class="sl">Panier moyen</div><div class="sv" id="ovAvg">0,00 €</div><div class="ss">Par article vendu</div></div>
+        <div class="card ov-stat"><div class="sl">CA du mois</div><div class="sv" id="ovMonthRev">0,00 €</div><div class="ss">Chiffre d'affaires</div></div>
+      </div>
+
+      <div class="card ov-topcat">
+        <div class="tc-label">Top catégorie · 30 derniers jours</div>
+        <div class="tc-name" id="tcName">—</div>
+        <div class="tc-stats">
+          <div><span>Ventes</span><b id="tcCount">0</b></div>
+          <div><span>CA</span><b id="tcRev">0 €</b></div>
+          <div><span>Bénéfice</span><b id="tcProfit">0 €</b></div>
+          <div><span>Marge</span><b id="tcMargin">0 %</b></div>
+        </div>
+        <div class="tc-best hidden" id="tcBest"><div class="tc-best-label">★ Meilleure vente du mois</div><div class="tc-best-info"><span id="tcBestName">—</span><b id="tcBestProfit"></b></div></div>
+        <div class="tc-podium-title">Podium catégories</div>
+        <div id="tcPodium"></div>
+      </div>
+
+      <h2>Dernières <em>ventes</em></h2>
+      <div class="card" id="ovActivity"></div>
+
+      <div class="card ov-chart">
+        <div class="ch-head">
+          <button class="ch-nav" onclick="moveWeek(-1)" aria-label="Semaine précédente">‹</button>
+          <div class="ch-title"><b id="weekTitle">Semaine en cours</b><span id="weekRange"></span></div>
+          <button class="ch-nav" id="weekNext" onclick="moveWeek(1)" aria-label="Semaine suivante">›</button>
+        </div>
+        <div class="ch-wrap" id="weekWrap"><canvas id="chartWeek"></canvas></div>
+        <div class="ch-hint">← glisse pour changer de semaine →</div>
+      </div>
+
+      <div class="card ov-chart">
+        <div class="ch-head">
+          <button class="ch-nav" onclick="moveRange(-1)" aria-label="30 jours précédents">‹</button>
+          <div class="ch-title"><b id="rangeTitle">Évolution sur 30 jours</b><span id="rangeRange"></span></div>
+          <button class="ch-nav" id="rangeNext" onclick="moveRange(1)" aria-label="30 jours suivants">›</button>
+        </div>
+        <div class="ch-wrap" id="rangeWrap"><canvas id="chartLine"></canvas></div>
+        <div class="ch-hint">← glisse pour changer de période →</div>
+      </div>
+
+      <div class="card ov-chart">
+        <div class="ch-head plain"><div class="ch-title"><b>Évolution annuelle</b><span>12 derniers mois</span></div></div>
+        <div class="ch-wrap"><canvas id="chartYear"></canvas></div>
+      </div>
+
+      <div class="card ov-chart">
+        <div class="ch-head plain"><div class="ch-title"><b>Répartition</b><span>CA par catégorie · 30 derniers jours</span></div></div>
+        <div class="ch-wrap donut"><canvas id="chartCat"></canvas></div>
+      </div>
+    </div>
+
     <!-- Bordereaux -->
-    <div id="view-labels" class="view active">
+    <div id="view-labels" class="view">
       <div class="row">
         <button id="printAllBtn" class="btn primary grow" onclick="printAll()">🖨️ Imprimer tous</button>
         <button id="pollBtn" class="btn" onclick="pollLabels()">🔄 Vérifier</button>
@@ -289,7 +411,8 @@ textarea { width: 100%; min-height: 84px; margin-top: 10px; padding: 10px 12px; 
   </main>
 
   <nav class="tabs">
-    <button class="active" data-v="labels" onclick="showView('labels')"><span class="ico">📦</span>Bordereaux<span id="labelBadge" class="badge hidden">0</span></button>
+    <button class="active" data-v="overview" onclick="showView('overview')"><span class="ico">📊</span>Aperçu</button>
+    <button data-v="labels" onclick="showView('labels')"><span class="ico">📦</span>Bordereaux<span id="labelBadge" class="badge hidden">0</span></button>
     <button data-v="sales" onclick="showView('sales')"><span class="ico">💶</span>Ventes</button>
     <button data-v="items" onclick="showView('items')"><span class="ico">👕</span>Annonces</button>
     <button data-v="pc" onclick="showView('pc')"><span class="ico">🖥️</span>PC</button>
@@ -422,9 +545,15 @@ function listen() {
     renderLabels();
   }, err => toast('Bordereaux : ' + err.message, 'error')));
   unsubs.push(userRef().collection('sales').onSnapshot(snap => {
-    sales = snap.docs.map(d => d.data());
+    // Même ordre que le PC : la plus récente d'abord
+    sales = snap.docs.map(d => d.data()).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
     renderSales();
+    renderOverview();
   }, err => toast('Ventes : ' + err.message, 'error')));
+  unsubs.push(userRef().collection('config').doc('main').onSnapshot(doc => {
+    const d = doc.exists ? doc.data() : null;
+    if (d && Array.isArray(d.categories) && d.categories.length) { categories = d.categories; renderOverview(); }
+  }, () => {}));
   unsubs.push(userRef().collection('catalogue').onSnapshot(snap => {
     catalogue = snap.docs.map(d => d.data()).sort((a, b) => (a.title || '').localeCompare(b.title || ''));
     if (itemMode === 'active') renderItems();
@@ -445,13 +574,220 @@ function listen() {
 }
 
 /* ─── Navigation ─── */
-const TITLES = { labels: 'Bordereaux', sales: 'Ventes', items: 'Annonces', pc: 'Mon PC' };
+const TITLES = { overview: 'Aperçu', labels: 'Bordereaux', sales: 'Ventes', items: 'Annonces', pc: 'Mon PC' };
 function showView(v) {
   document.querySelectorAll('.view').forEach(e => e.classList.toggle('active', e.id === 'view-' + v));
   document.querySelectorAll('nav.tabs button').forEach(b => b.classList.toggle('active', b.dataset.v === v));
   $('viewTitle').textContent = TITLES[v];
   window.scrollTo(0, 0);
+  if (v === 'overview') renderOverview(); // les graphiques se dessinent une fois l'onglet visible
 }
+
+/* ═══ APERÇU (mêmes calculs que l'onglet Aperçu du PC) ═══ */
+const DEFAULT_CATEGORIES = [
+  { id: 'cat-1', name: 'Vêtements femme', color: '#C97B5A' },
+  { id: 'cat-2', name: 'Vêtements homme', color: '#3D7A8E' },
+  { id: 'cat-3', name: 'Chaussures', color: '#1F4E3F' },
+  { id: 'cat-4', name: 'Accessoires', color: '#6B5B95' },
+  { id: 'cat-5', name: 'Sacs', color: '#B89968' },
+];
+let categories = DEFAULT_CATEGORIES.slice();
+const charts = {};
+let weekOffset = 0, rangeOffset = 0;
+const num = (v) => Number(v) || 0;
+const profitOf = (s) => num(s.price) - num(s.cost);
+const eur2 = (n) => num(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+function localISO(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+function getCategory(id) { return categories.find(c => c.id === id) || { name: 'Sans catégorie', color: '#8B8C82' }; }
+function hexToRgba(hex, a = 1) {
+  const h = String(hex || '#8b8ba6').replace('#', '');
+  return `rgba(${parseInt(h.slice(0, 2), 16) || 0}, ${parseInt(h.slice(2, 4), 16) || 0}, ${parseInt(h.slice(4, 6), 16) || 0}, ${a})`;
+}
+function startOfWeek(d) { const x = new Date(d); const day = (x.getDay() + 6) % 7; x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - day); return x; }
+const overviewVisible = () => $('view-overview').classList.contains('active') && !$('appScreen').classList.contains('hidden');
+
+function renderOverview() {
+  if (!overviewVisible()) return;
+  const set = (id, v) => { const e = $(id); if (e) e.textContent = v; };
+  // Cumul total
+  const rev = sales.reduce((t, s) => t + num(s.price), 0);
+  const cost = sales.reduce((t, s) => t + num(s.cost), 0);
+  const profit = rev - cost, n = sales.length;
+  set('ovProfit', eur2(profit)); set('ovCount', n);
+  set('ovMargin', (rev > 0 ? profit / rev * 100 : 0).toFixed(1) + ' %');
+  set('ovRevenue', eur2(rev)); set('ovCost', eurShort(cost));
+  // Mois en cours, 7 jours, panier moyen
+  const now = new Date();
+  const mISO = localISO(new Date(now.getFullYear(), now.getMonth(), 1));
+  const month = sales.filter(s => String(s.date || '') >= mISO);
+  set('ovMonth', eur2(month.reduce((t, s) => t + profitOf(s), 0)));
+  set('ovMonthCount', month.length + (month.length > 1 ? ' ventes' : ' vente'));
+  set('ovMonthRev', eur2(month.reduce((t, s) => t + num(s.price), 0)));
+  const w7 = new Date(); w7.setDate(w7.getDate() - 6);
+  set('ovWeek', eur2(sales.filter(s => String(s.date || '') >= localISO(w7)).reduce((t, s) => t + profitOf(s), 0)));
+  set('ovAvg', eur2(n ? rev / n : 0));
+  // Top catégorie (30 jours), meilleure vente, podium
+  const d30 = new Date(); d30.setDate(d30.getDate() - 30);
+  const recent = sales.filter(s => String(s.date || '') >= localISO(d30));
+  const cm = {};
+  recent.forEach(s => {
+    const c = getCategory(s.category);
+    const e = cm[c.name] || (cm[c.name] = { name: c.name, color: c.color, count: 0, revenue: 0, profit: 0, items: [] });
+    e.count++; e.revenue += num(s.price); e.profit += profitOf(s); e.items.push(s);
+  });
+  const cats = Object.values(cm).sort((a, b) => b.profit - a.profit);
+  const top = cats[0];
+  set('tcName', top ? top.name : '—'); set('tcCount', top ? top.count : 0);
+  set('tcRev', eurShort(top ? top.revenue : 0)); set('tcProfit', eurShort(top ? top.profit : 0));
+  set('tcMargin', (top && top.revenue > 0 ? top.profit / top.revenue * 100 : 0).toFixed(0) + ' %');
+  const best = top && top.items.slice().sort((a, b) => profitOf(b) - profitOf(a))[0];
+  $('tcBest').classList.toggle('hidden', !best);
+  if (best) { set('tcBestName', best.name || 'Article'); set('tcBestProfit', '+' + eur2(profitOf(best))); }
+  const top3 = cats.slice(0, 3), maxP = (top3[0] && top3[0].profit) || 1;
+  $('tcPodium').innerHTML = top3.length ? top3.map((c, i) => `<div class="pod">
+      <span class="pod-rank">${['I', 'II', 'III'][i]}</span><span class="pod-name">${esc(c.name)}</span>
+      <span class="pod-bar"><span style="width:${Math.max(8, c.profit / maxP * 100).toFixed(0)}%"></span></span><b>${eurShort(c.profit)}</b></div>`).join('')
+    : '<div class="muted small" style="font-style:italic">Aucune donnée sur les 30 derniers jours</div>';
+  // 5 dernières ventes
+  const r5 = sales.slice(0, 5);
+  $('ovActivity').innerHTML = r5.length ? r5.map(s => {
+    const c = getCategory(s.category), p = profitOf(s);
+    return `<div class="sale">${s.photo ? `<img src="${esc(s.photo)}" alt="" loading="lazy">` : '<img alt="">'}
+      <div class="n"><b>${esc(s.name || 'Vente')}</b><span class="small muted"><span class="cdot" style="background:${esc(c.color)}"></span>${esc(c.name)} · ${esc(s.date ? new Date(s.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' }) : '')}</span></div>
+      <div class="p ${p < 0 ? 'loss' : ''}">${p >= 0 ? '+' : ''}${eur2(p)}</div></div>`;
+  }).join('') : '<div class="empty"><span class="big">∅</span>Aucune vente enregistrée pour le moment</div>';
+  if (window.Chart) { renderWeekChart(); renderRangeChart(); renderYearChart(); renderCatChart(); }
+}
+
+// Style commun des graphiques (couleurs Forest du PC)
+const TOOLTIP = { backgroundColor: '#1F2421', titleColor: '#B8956A', bodyColor: '#F0EAD4', borderColor: 'rgba(184,149,106,0.3)', borderWidth: 1, padding: 10, titleFont: { family: 'Libre Caslon Text', size: 13, weight: '700' }, bodyFont: { family: 'Inter', size: 12 } };
+const AXIS = (stacked) => ({
+  x: { stacked, ticks: { color: '#8B8472', font: { family: 'Inter', size: 10 }, maxRotation: 0, autoSkipPadding: 6 }, grid: { display: false } },
+  y: { stacked, beginAtZero: true, ticks: { color: '#8B8472', callback: (v) => v + ' €', font: { family: 'Inter', size: 10 }, maxTicksLimit: 6 }, grid: { color: 'rgba(220, 208, 184, 0.5)' } },
+});
+const LEGEND = { display: true, position: 'top', align: 'end', labels: { color: '#1F2421', font: { family: 'Inter', size: 11, weight: '500' }, boxWidth: 12, padding: 10 } };
+function drawChart(key, canvasId, config) {
+  if (charts[key]) charts[key].destroy();
+  charts[key] = new Chart($(canvasId).getContext('2d'), config);
+}
+
+function moveWeek(d) { weekOffset = Math.min(0, weekOffset + d); renderWeekChart(); }
+function renderWeekChart() {
+  const ws = startOfWeek(new Date()); ws.setDate(ws.getDate() + weekOffset * 7);
+  const we = new Date(ws); we.setDate(we.getDate() + 6);
+  $('weekTitle').textContent = weekOffset === 0 ? 'Semaine en cours' : weekOffset === -1 ? 'Semaine dernière' : `Il y a ${-weekOffset} semaines`;
+  $('weekRange').textContent = ws.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' – ' + we.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  $('weekNext').disabled = weekOffset >= 0;
+  const names = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  const lab = [], pr = [], co = [], bg = [], bd = [], cbg = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(ws); d.setDate(d.getDate() + i);
+    const day = sales.filter(s => s.date === localISO(d));
+    lab.push(names[i] + ' ' + String(d.getDate()).padStart(2, '0'));
+    pr.push(day.reduce((t, s) => t + profitOf(s), 0));
+    co.push(day.reduce((t, s) => t + num(s.cost), 0));
+    if (!day.length) { bg.push('rgba(139, 140, 130, 0.15)'); bd.push('rgba(139, 140, 130, 0.4)'); cbg.push('rgba(139, 140, 130, 0.08)'); }
+    else {
+      const m = {}; day.forEach(s => { const c = getCategory(s.category); (m[c.name] = m[c.name] || { color: c.color, p: 0 }).p += profitOf(s); });
+      const t = Object.values(m).sort((a, b) => b.p - a.p)[0];
+      bg.push(hexToRgba(t.color, 0.85)); bd.push(t.color); cbg.push(hexToRgba('#C97B5A', 0.45));
+    }
+  }
+  drawChart('week', 'chartWeek', {
+    type: 'bar',
+    data: { labels: lab, datasets: [
+      { label: 'Bénéfice', data: pr, backgroundColor: bg, borderColor: bd, borderWidth: 1.5, borderRadius: 6, stack: 'ca' },
+      { label: "Coût d'achat", data: co, backgroundColor: cbg, borderColor: 'rgba(201, 123, 90, 0.6)', borderWidth: 1, borderRadius: 6, stack: 'ca' },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 600 }, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: LEGEND, tooltip: { ...TOOLTIP, mode: 'index', intersect: false, callbacks: { label: (c) => c.dataset.label + ' : ' + eur2(c.parsed.y), footer: (it) => 'CA : ' + eur2(it.reduce((t, x) => t + x.parsed.y, 0)) } } },
+      scales: AXIS(true) },
+  });
+}
+
+function moveRange(d) { rangeOffset = Math.min(0, rangeOffset + d); renderRangeChart(); }
+function renderRangeChart() {
+  const end = new Date(); end.setDate(end.getDate() + rangeOffset * 30);
+  const start = new Date(end); start.setDate(start.getDate() - 29);
+  $('rangeTitle').textContent = rangeOffset === 0 ? 'Évolution sur 30 jours' : 'Période passée';
+  $('rangeRange').textContent = start.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }) + ' – ' + end.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  $('rangeNext').disabled = rangeOffset >= 0;
+  const lab = [], pr = [], det = [];
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(end); d.setDate(d.getDate() - i);
+    const day = sales.filter(s => s.date === localISO(d));
+    const p = day.reduce((t, s) => t + profitOf(s), 0);
+    lab.push(d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }));
+    pr.push(p);
+    det.push({ full: d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }), n: day.length, r: day.reduce((t, s) => t + num(s.price), 0), c: day.reduce((t, s) => t + num(s.cost), 0), p });
+  }
+  const ctx = $('chartLine').getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 240); g.addColorStop(0, 'rgba(45, 90, 64, 0.50)'); g.addColorStop(1, 'rgba(45, 90, 64, 0)');
+  drawChart('line', 'chartLine', {
+    type: 'line',
+    data: { labels: lab, datasets: [{ label: 'Bénéfice', data: pr, borderColor: '#2D5A40', backgroundColor: g, fill: true, tension: 0.4, cubicInterpolationMode: 'monotone', borderWidth: 2.5, pointRadius: 0, pointHoverRadius: 6, pointHoverBackgroundColor: '#2D5A40', pointHoverBorderColor: '#F0EAD4', pointHoverBorderWidth: 2 }] },
+    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 700 }, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: LEGEND, tooltip: { ...TOOLTIP, displayColors: false, callbacks: {
+        title: (it) => { const d = det[it[0].dataIndex]; return d ? d.full.charAt(0).toUpperCase() + d.full.slice(1) : ''; },
+        label: () => '',
+        afterBody: (it) => { const d = det[it[0].dataIndex]; if (!d) return ''; return d.n ? [`${d.n} ${d.n > 1 ? 'ventes' : 'vente'}`, `CA : ${eur2(d.r)}`, `Coût : ${eur2(d.c)}`, `Bénéfice : ${eur2(d.p)}`] : 'Aucune vente ce jour'; } } } },
+      scales: { ...AXIS(false), x: { ticks: { color: '#8B8472', font: { family: 'Inter', size: 10 }, maxRotation: 0, maxTicksLimit: 6 }, grid: { color: 'rgba(220, 208, 184, 0.4)' } } } },
+  });
+}
+
+function renderYearChart() {
+  const now = new Date(), lab = [], pr = [], co = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const a = localISO(d), b = localISO(new Date(d.getFullYear(), d.getMonth() + 1, 0));
+    const m = sales.filter(s => String(s.date || '') >= a && String(s.date || '') <= b);
+    lab.push(d.toLocaleDateString('fr-FR', { month: 'short' }).replace('.', ''));
+    pr.push(m.reduce((t, s) => t + profitOf(s), 0));
+    co.push(m.reduce((t, s) => t + num(s.cost), 0));
+  }
+  const ctx = $('chartYear').getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 220); g.addColorStop(0, 'rgba(45, 90, 64, 0.90)'); g.addColorStop(1, 'rgba(45, 90, 64, 0.55)');
+  drawChart('year', 'chartYear', {
+    type: 'bar',
+    data: { labels: lab, datasets: [
+      { label: 'Bénéfice', data: pr, backgroundColor: g, borderColor: '#2D5A40', borderWidth: 1, borderRadius: 5, stack: 'ca' },
+      { label: "Coût d'achat", data: co, backgroundColor: 'rgba(184, 149, 106, 0.55)', borderColor: 'rgba(184, 149, 106, 0.75)', borderWidth: 1, borderRadius: 5, stack: 'ca' },
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 600 }, interaction: { mode: 'index', intersect: false },
+      plugins: { legend: LEGEND, tooltip: { ...TOOLTIP, mode: 'index', intersect: false, callbacks: { label: (c) => c.dataset.label + ' : ' + eur2(c.parsed.y), footer: (it) => 'CA : ' + eur2(it.reduce((t, x) => t + x.parsed.y, 0)) } } },
+      scales: AXIS(true) },
+  });
+}
+
+function renderCatChart() {
+  const d30 = new Date(); d30.setDate(d30.getDate() - 30);
+  const m = {};
+  sales.filter(s => String(s.date || '') >= localISO(d30)).forEach(s => { const c = getCategory(s.category); (m[c.name] = m[c.name] || { v: 0, color: c.color }).v += num(s.price); });
+  const keys = Object.keys(m);
+  if (charts.cat) { charts.cat.destroy(); charts.cat = null; }
+  const wrap = $('chartCat').parentElement;
+  wrap.classList.toggle('is-empty', !keys.length);
+  if (!keys.length) return;
+  drawChart('cat', 'chartCat', {
+    type: 'doughnut',
+    data: { labels: keys, datasets: [{ data: keys.map(k => m[k].v), backgroundColor: keys.map(k => m[k].color), borderColor: '#FAF7F0', borderWidth: 3, hoverOffset: 8 }] },
+    options: { responsive: true, maintainAspectRatio: false, cutout: '66%', animation: { animateRotate: true, duration: 700 },
+      plugins: { legend: { position: 'bottom', labels: { color: '#1F2421', font: { family: 'Inter', size: 12 }, padding: 12, boxWidth: 10, boxHeight: 10, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { ...TOOLTIP, callbacks: { label: (c) => `${c.label} : ${eur2(c.parsed)}` } } } },
+  });
+}
+
+// Glisser le doigt sur un graphique = semaine / période précédente ou suivante
+function bindSwipe(id, fn) {
+  const el = $(id); let sx = 0, sy = 0;
+  el.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  el.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) fn(dx > 0 ? -1 : 1);
+  }, { passive: true });
+}
+bindSwipe('weekWrap', moveWeek);
+bindSwipe('rangeWrap', moveRange);
 
 /* ─── Commandes vers le PC ─── */
 // Le PC écoute users/{uid}/<collection> (status = pending) et répond en changeant le status.
