@@ -1,0 +1,16 @@
+{
+  "name": "Vinted Tracker",
+  "short_name": "Vinted",
+  "description": "Suivi de tes ventes Vinted — bénéfices, statistiques et synchronisation entre appareils.",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07070f",
+  "theme_color": "#00d9a3",
+  "icons": [
+    { "src": "icon-192.png", "type": "image/png", "sizes": "192x192", "purpose": "any maskable" },
+    { "src": "icon-512.png", "type": "image/png", "sizes": "512x512", "purpose": "any maskable" }
+  ],
+  "lang": "fr",
+  "categories": ["finance", "productivity"]
+}
